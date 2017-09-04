@@ -122,6 +122,7 @@ else
 			}
 			else if(isset($_GET['wikidata']))
 			{
+				if($_GET['wikidata'] == "Q19842286"){$_GET['wikidata'] = "Q659891";} // fix mapbox bug
 				$town = get_town_wikidata($db, $_GET['wikidata']);
 				if(town_exists($db, $town))
 				{
