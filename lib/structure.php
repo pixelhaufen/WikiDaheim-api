@@ -4,7 +4,7 @@ function return_structure_categories($db)
 {
 	global $config;
 	
-	$sql = "SELECT `data` FROM `" . $config['dbprefix'] . "config` WHERE (`type` LIKE 'list' OR `type` LIKE 'commons') AND `key` LIKE 'display' AND (`online` = 1 OR `online` = 2)";
+	$sql = "SELECT `data` FROM `" . $config['dbprefix'] . "config` WHERE (`type` LIKE 'list' OR `type` LIKE 'commons' OR `type` LIKE 'external') AND `key` LIKE 'display' AND (`online` = 1 OR `online` = 2)";
 	$res = $db->query($sql);
 	
 	if($config['log'] > 2)
