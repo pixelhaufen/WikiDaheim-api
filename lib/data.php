@@ -424,7 +424,7 @@ function get_external_categorie($db,$town,$categorie,$display_categorie)
 				$listelement['name'] = "Friedhof";
 			}
 			
-			$listelement['beschreibung'] = "An diesen Koordinaten sollte sich ein Friedhof befinden.";
+			$listelement['beschreibung'] = "An diesen Koordinaten befindet sich ein Friedhof.";
 			/*if($row["wikidata"] != "")
 			{
 				$listelement['editLink'] = "https://www.wikidata.org/wiki/".$row["wikidata"];
@@ -433,7 +433,7 @@ function get_external_categorie($db,$town,$categorie,$display_categorie)
 			{
 				$listelement['editLink'] = "https://de.wikipedia.org/wiki/Wikipedia:WikiDaheim";
 			}*/
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at&categories=".str_replace(" ","+",$row['gemeinde'])."|Cemeteries_in_Austria_by_state&descriptionlang=de"; 
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-cemeteries&categories=".str_replace(" ","+",$row['gemeinde'])."|Cemeteries_in_Austria_by_state&descriptionlang=de"; 
 		}
 		
 		$listelement['complete'] = false;
