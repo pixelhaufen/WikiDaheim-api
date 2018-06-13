@@ -136,6 +136,21 @@ else
 					return;
 				}
 			}
+			else if(isset($_GET['gemeindekennzahl']))
+			{
+				$town = get_town_kennzahl($db, $_GET['gemeindekennzahl']);
+				if(town_exists($db, $town))
+				{
+					echo return_town_info($db,$town,$wiki,$categories);
+				}
+				else
+				{
+					// town dosn't exist
+					header($_SERVER["SERVER_PROTOCOL"]." 404 Not Found");
+					echo return_error_unknown_gemeindekennzahl($_GET['gemeindekennzahl']);
+					return;
+				}
+			}
 			else
 			{
 				header($_SERVER["SERVER_PROTOCOL"]." 404 Not Found");

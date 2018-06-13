@@ -114,4 +114,18 @@ function return_error_unknown_wikidata($info)
 	return json_encode($error);
 }
 
+function return_error_unknown_gemeindekennzahl($info)
+{
+	$error = array
+	(
+		'error' => array
+		(
+			'code' => 'unknown_wikidata',
+			'info' => 'Unrecognized value for parameter "gemeindekennzahl":'.$info.'.',
+		),
+	);
+	
+	return json_encode($error);
+}
+
 ?>

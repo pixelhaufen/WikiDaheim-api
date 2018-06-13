@@ -40,6 +40,26 @@ function get_town_wikidata($db, $wikidata)
 	return $gemeinde;
 }
 
+function get_town_kennzahl($db, $kennzahl)
+{
+	global $config;
+	
+	$gemeinde = $kennzahl;
+	$kennzahl = $db->real_escape_string($kennzahl);
+	$sql = "SELECT `gemeinde` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeindekennzahl` LIKE '$kennzahl'";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$gemeinde = $row['gemeinde'];
+	}
+	return $gemeinde;
+}
+
 function town_exists($db, $town)
 {
 	global $config;
