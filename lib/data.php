@@ -411,7 +411,7 @@ function get_external_categorie($db,$town,$categorie,$display_categorie)
 	
 	while($row = $res->fetch_array(MYSQLI_ASSOC))
 	{
-		$listelement = "";
+		$listelement = array();
 		$complete = 0;
 		
 		$listelement['category'] = $display_categorie;
@@ -806,7 +806,7 @@ function get_wiki_data($db,$town,$township="wikipedia")
 	}
 	
 	$row = $res->fetch_array(MYSQLI_ASSOC);
-	$wikielement = "";
+	$wikielement = array();
 		
 	foreach($features as $feature => $feature_info)
 	{
