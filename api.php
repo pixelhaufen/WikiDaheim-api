@@ -85,7 +85,7 @@ else
 		{
 			$type = "data";
 		
-			if(isset($_GET['wiki']))
+			if((isset($_GET['wiki']))&&($_GET['wiki']==1))
 			{
 				$wiki = true;
 			}
@@ -102,7 +102,7 @@ else
 		
 			if(isset($_GET['town']))
 			{
-				$town = $_GET['town'];
+				$town = $db->real_escape_string($_GET['town']);
 				if(town_exists($db, $town))
 				{
 					echo return_town_info($db,$town,$wiki,$categories);

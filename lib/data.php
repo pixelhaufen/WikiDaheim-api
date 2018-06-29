@@ -1,6 +1,6 @@
 <?php
 
-function get_town($db, $lon, $lat)
+function get_town(&$db, $lon, $lat)
 {
 	global $config;
 	
@@ -20,7 +20,7 @@ function get_town($db, $lon, $lat)
 	return $gemeinde;
 }
 
-function get_town_wikidata($db, $wikidata)
+function get_town_wikidata(&$db, $wikidata)
 {
 	global $config;
 	
@@ -40,7 +40,7 @@ function get_town_wikidata($db, $wikidata)
 	return $gemeinde;
 }
 
-function get_town_kennzahl($db, $kennzahl)
+function get_town_kennzahl(&$db, $kennzahl)
 {
 	global $config;
 	
@@ -60,11 +60,10 @@ function get_town_kennzahl($db, $kennzahl)
 	return $gemeinde;
 }
 
-function town_exists($db, $town)
+function town_exists(&$db, $town)
 {
 	global $config;
 	
-	$town = $db->real_escape_string($town);
 	$sql = "SELECT `article_wikipedia` FROM  `" . $config['dbprefix'] . "search` WHERE  `article_wikipedia` LIKE  '".$town."'";
 	$res = $db->query($sql);
 	if($config['log'] > 2)
@@ -73,7 +72,7 @@ function town_exists($db, $town)
 	}
 	
 	$erg = $res->num_rows;
-	$res->close();
+	$res->free();
 	
 	if($erg == 1)
 	{
@@ -83,7 +82,7 @@ function town_exists($db, $town)
 	return false;
 }
 
-function categorie_exists($db, $categorie)
+function categorie_exists(&$db, $categorie)
 {
 	global $config;
 	
@@ -101,7 +100,7 @@ function categorie_exists($db, $categorie)
 	}
 	
 	$erg = $res->num_rows;
-	$res->close();
+	$res->free();
 	if($erg == 1)
 	{
 		return true;
@@ -110,11 +109,16 @@ function categorie_exists($db, $categorie)
 	return false;
 }
 
-function categorie_exists_internal($db, $categorie)
+function categorie_exists_internal(&$db, $categorie)
 {
 	global $config;
 	
 	if($categorie == "commons")
+	{
+		return true;
+	}
+	
+	if($categorie == "request")
 	{
 		return true;
 	}
@@ -128,7 +132,7 @@ function categorie_exists_internal($db, $categorie)
 	}
 	
 	$erg = $res->num_rows;
-	$res->close();
+	$res->free();
 	if($erg == 1)
 	{
 		return true;
@@ -137,7 +141,7 @@ function categorie_exists_internal($db, $categorie)
 	return false;
 }
 
-function get_display_categories($db, $display_categories)
+function get_display_categories(&$db, $display_categories)
 {
 	global $config;
 	$categories = array();
@@ -160,7 +164,7 @@ function get_display_categories($db, $display_categories)
 				$categories[$cat] = $categorie;
 			}
 	
-			$res->close();
+			$res->free();
 		}
 		else
 		{
@@ -171,7 +175,7 @@ function get_display_categories($db, $display_categories)
 	return $categories;
 }
 
-function get_commons_foto_name_by_cat($db,$commonscat,$feature)
+function get_commons_foto_name_by_cat(&$db,$commonscat,$feature)
 {
 	global $config;
 	$fotos = array();
@@ -187,7 +191,7 @@ function get_commons_foto_name_by_cat($db,$commonscat,$feature)
 	{
 		$commonscats[] = $row['commons_feature'];
 	}
-	$res->close();
+	$res->free();
 	
 	foreach($commonscats as $commonsfeature)
 	{
@@ -202,13 +206,13 @@ function get_commons_foto_name_by_cat($db,$commonscat,$feature)
 		{
 			$fotos[$commonsfeature] = str_replace("File:","",$row['name']);
 		}
-		$res->close();
+		$res->free();
 	}
 	
 	return $fotos;
 }
 
-function get_commons_foto_name($db,$commonscat,$feature)
+function get_commons_foto_name(&$db,$commonscat,$feature)
 {
 	global $config;
 	$foto = "";
@@ -223,12 +227,12 @@ function get_commons_foto_name($db,$commonscat,$feature)
 	{
 		$foto = str_replace("File:","",$row['name']);
 	}
-	$res->close();
+	$res->free();
 	
 	return $foto;
 }
 
-function get_commons_categorie($db,$town,$categorie)
+function get_commons_categorie(&$db,$town,$categorie)
 {
 	global $config;
 	$categorie = $db->real_escape_string($categorie);
@@ -246,7 +250,7 @@ function get_commons_categorie($db,$town,$categorie)
 	
 	$row = $res->fetch_array(MYSQLI_ASSOC);
 	$commonscat = $row['commonscat'];
-	$res->close();
+	$res->free();
 	
 	if($commonscat == "")
 	{
@@ -267,7 +271,7 @@ function get_commons_categorie($db,$town,$categorie)
 		$features[$tmp]['info_true'] = $row['info_true'];
 		$features[$tmp]['info_false'] = $row['info_false'];
 	}
-	$res->close();
+	$res->free();
 	
 	// featurescat
 	$sql = "SELECT `feature`,`alias` FROM `" . $config['dbprefix'] . "commons_photos_features_alias`";
@@ -286,7 +290,7 @@ function get_commons_categorie($db,$town,$categorie)
 			$features[$tmp]['featurescat'] = $row['alias'];
 		}
 	}
-	$res->close();
+	$res->free();
 	
 	// data
 	$sql = "SELECT * FROM `" . $config['dbprefix'] . "commons_commonscat` WHERE (`online`='1' OR `online`='2') AND `commons_gemeinde` LIKE '".$commonscat."'";
@@ -357,12 +361,12 @@ function get_commons_categorie($db,$town,$categorie)
 			}
 		} // feature loop
 	} // data loop
-	$res->close();
+	$res->free();
 	
 	return $list;
 }
 
-function get_external_categorie($db,$town,$categorie,$display_categorie)
+function get_external_categorie(&$db,$town,$categorie,$display_categorie)
 {
 	global $config;
 	$features = array();
@@ -378,7 +382,7 @@ function get_external_categorie($db,$town,$categorie,$display_categorie)
 	
 	$row = $res->fetch_array(MYSQLI_ASSOC);
 	$town = $row['town'];
-	$res->close();
+	$res->free();
 	
 	if ($town == "")
 	{
@@ -399,7 +403,7 @@ function get_external_categorie($db,$town,$categorie,$display_categorie)
 		$features[$tmp]['info_true'] = $row['info_true'];
 		$features[$tmp]['info_false'] = $row['info_false'];
 	}
-	$res->close();
+	$res->free();
 	
 	// data
 	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_extern_data` WHERE (`online`='1' OR `online`='2') AND `gemeinde` LIKE '".$town."'";
@@ -464,7 +468,7 @@ function get_external_categorie($db,$town,$categorie,$display_categorie)
 	return $list;
 }
 
-function get_list_categorie($db,$town,$categorie,$display_categorie)
+function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 {
 	global $config;
 	$features = array();
@@ -480,7 +484,7 @@ function get_list_categorie($db,$town,$categorie,$display_categorie)
 	
 	$row = $res->fetch_array(MYSQLI_ASSOC);
 	$town = $row['town'];
-	$res->close();
+	$res->free();
 	
 	if ($town == "")
 	{
@@ -501,7 +505,7 @@ function get_list_categorie($db,$town,$categorie,$display_categorie)
 		$features[$tmp]['info_true'] = $row['info_true'];
 		$features[$tmp]['info_false'] = $row['info_false'];
 	}
-	$res->close();
+	$res->free();
 	
 	// head feature
 	$sql = "SELECT `data` FROM `" . $config['dbprefix'] . $categorie . "_config` WHERE `key` LIKE 'head' AND `type` LIKE 'feature'";
@@ -517,7 +521,7 @@ function get_list_categorie($db,$town,$categorie,$display_categorie)
 		$features[$tmp]['info_true'] = "";
 		$features[$tmp]['info_false'] = "";
 	}
-	$res->close();
+	$res->free();
 	
 	// data
 	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_list_data` WHERE (`online`='1' OR `online`='2') AND `gemeinde` LIKE '".$town."'";
@@ -529,7 +533,7 @@ function get_list_categorie($db,$town,$categorie,$display_categorie)
 	
 	while($row = $res->fetch_array(MYSQLI_ASSOC))
 	{
-		$listelement = "";
+		$listelement = array();
 		$complete = 0;
 		
 		$listelement['category'] = $display_categorie;
@@ -742,7 +746,91 @@ function get_list_categorie($db,$town,$categorie,$display_categorie)
 	return $list;
 }
 
-function get_wiki_categorie($db,$town,$categorie,$display_categorie)
+function get_request_categorie(&$db,$town,$categorie,$display_categorie)
+{
+	global $config;
+	$features = array();
+	$list = array();
+	
+	if ($town == "")
+	{
+		return $list;
+	}
+	
+	// features
+	$sql = "SELECT `feature`,`info_true`,`info_false` FROM `" . $config['dbprefix'] . $categorie . "_external_features` WHERE `online` = 1";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$tmp=$row['feature'];
+		$features[$tmp]['info_true'] = $row['info_true'];
+		$features[$tmp]['info_false'] = $row['info_false'];
+	}
+	$res->free();
+	
+	// data
+	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online`='1' OR `online`='2') AND `gemeinde` LIKE '".$town."'";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$listelement = array();
+		$complete = 0;
+		
+		$listelement['category'] = $display_categorie;
+		
+		foreach($features as $feature => $feature_info)
+		{
+			$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
+			if($row[$feature] == "")
+			{
+				if($feature_info['info_false'] != "")
+				{
+					$listelement[$feature.'_info'] = $feature_info['info_false'];
+				}
+				$complete++;
+			}
+			else
+			{
+				if($feature_info['info_true'] != "")
+				{
+					$listelement[$feature.'_info'] = $feature_info['info_true'];
+				}
+			}
+		}
+		
+		// HARDCODED stuff
+		if ($categorie == "request")
+		{
+			$listelement['longitude'] += 0.00005;
+			if ($listelement['name'] == "")
+			{
+				$listelement['name'] = "Bilderwunsch";
+			}
+			
+			$listelement['beschreibung'] = $listelement['description'];
+			$listelement['editLink'] = $listelement['article'];
+			
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at&categories=".str_replace(" ","+",$row['gemeinde'])."&descriptionlang=de"; 
+		}
+		
+		$listelement['complete'] = false;
+		$list[]=$listelement;
+	}
+	
+	return $list;
+}
+
+function get_wiki_categorie(&$db,$town,$categorie,$display_categorie)
 {
 	global $config;
 	$categorie = $db->real_escape_string($categorie);
@@ -757,7 +845,7 @@ function get_wiki_categorie($db,$town,$categorie,$display_categorie)
 	}
 	$row = $res->fetch_array(MYSQLI_ASSOC);
 	$type = $row['type'];
-	$res->close();
+	$res->free();
 	
 	if($type == "commons")
 	{
@@ -771,13 +859,17 @@ function get_wiki_categorie($db,$town,$categorie,$display_categorie)
 	{
 		return get_list_categorie($db,$town,$categorie,$display_categorie);
 	}
+	else if($type == "request")
+	{
+		return get_request_categorie($db,$town,$categorie,$display_categorie);
+	}
 	
 	$list = array();
 		
 	return $list;
 }
 
-function get_wiki_data($db,$town,$township="wikipedia")
+function get_wiki_data(&$db,$town,$township="wikipedia")
 {
 	global $config;
 	
@@ -795,7 +887,7 @@ function get_wiki_data($db,$town,$township="wikipedia")
 		$features[$tmp]['info_true'] = $row['info_true'];
 		$features[$tmp]['info_false'] = $row['info_false'];
 	}
-	$res->close();
+	$res->free();
 	
 	// data
 	$sql = "SELECT * FROM `" . $config['dbprefix'] . $township . "_township_data` WHERE (`online`='1' OR `online`='2') AND `article` LIKE '".$town."'";
@@ -832,7 +924,7 @@ function get_wiki_data($db,$town,$township="wikipedia")
 		$wikielements[]=$wikielement;
 	}
 	
-	// gemeindekennzahl
+	// gemeindekennzahl TODO remove
 	$gemeindekennzahl = "";
 	$sql = "SELECT `gemeindekennzahl` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
 	$res = $db->query($sql);
@@ -845,8 +937,8 @@ function get_wiki_data($db,$town,$township="wikipedia")
 	{
 		$gemeindekennzahl = $row['gemeindekennzahl'];
 	}
-	$res->close();
-	
+	$res->free();
+	// gemeindekennzahl TODO end remove
 	
 	$wiki = array();
 	
@@ -854,15 +946,17 @@ function get_wiki_data($db,$town,$township="wikipedia")
 	$wiki['editLink'] = "https://de.wikipedia.org/w/index.php?title=".rawurlencode($town)."&action=edit";
 	$wiki['sections'] = $wikielements;
 	
+	// gemeindekennzahl TODO remove
 	if($gemeindekennzahl != "")
 	{
 		$wiki['gemeindekennzahl'] = $gemeindekennzahl;
 	}
+	// gemeindekennzahl TODO end remove
 	
 	return $wiki;
 }
 
-function return_town_info($db, $town, $wiki, $categories)
+function return_town_info(&$db, $town, $wiki, $categories)
 {
 	global $config;
 	$error = 0;
@@ -879,7 +973,7 @@ function return_town_info($db, $town, $wiki, $categories)
 		$town_info['name'] = $town;
 		
 		// geo
-		$sql = "SELECT `latitude`, `longitude` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
+		$sql = "SELECT `latitude`, `longitude`, `gemeindekennzahl`, `wikidata` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
 		$res = $db->query($sql);
 		if($config['log'] > 2)
 		{
@@ -892,7 +986,23 @@ function return_town_info($db, $town, $wiki, $categories)
 					'latitude' => $row['latitude'],
 					'longitude' => $row['longitude'],
 				);
-		$res->close();
+		
+		if($row['gemeindekennzahl'] != "")
+		{
+			$town_info['gemeindekennzahl'] = $row['gemeindekennzahl'];
+		}
+		
+		if($row['wikidata'] != "")
+		{
+			$town_info['wikidata'] = $row['wikidata'];
+			$town_info['GPX'] = "https://api.wikidaheim.at/gpx.php?wikidata=".$row['wikidata'];
+		}
+		else
+		{
+			$town_info['GPX'] = "https://api.wikidaheim.at/gpx.php?town=".$town;
+		}
+		$res->free();
+		
 		
 		// commons
 		$sql = "SELECT `commonscat` FROM `" . $config['dbprefix'] . "wikipedia_township_data` WHERE `article` LIKE '".$town."'";
@@ -904,7 +1014,7 @@ function return_town_info($db, $town, $wiki, $categories)
 		
 		$row = $res->fetch_array(MYSQLI_ASSOC);
 		$town_info['commonscat'] = $row['commonscat'];
-		$res->close();
+		$res->free();
 		
 		if($row['commonscat'] != "")
 		{
@@ -921,7 +1031,7 @@ function return_town_info($db, $town, $wiki, $categories)
 				$town_info['foto_'.$foto_loop] = $row['name'];
 				$foto_loop++;
 			}
-			$res->close();
+			$res->free();
 		}
 		
 		$town_info['articles'][] = get_wiki_data($db,$town/*,$township*/);
