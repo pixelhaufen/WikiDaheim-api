@@ -623,6 +623,10 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			{
 				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&id=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
+			else if($row['bezirk']!="")
+			{
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&id=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['bezirk']);
+			}
 			else
 			{
 				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&id=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['gemeinde']);
