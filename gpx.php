@@ -1,7 +1,5 @@
 <?php
-header('Content-disposition: attachment; filename=WikiDaheim.gpx');
-header('Content-type: text/xml');
-//header('Access-Control-Allow-Origin: *');
+header('Content-type: application/gpx+xml');
 
 require_once "config/config.php"; // config db, etc
 require_once "lib/lib.php"; // config db, etc
@@ -31,6 +29,7 @@ else
 		$town = $db->real_escape_string($_GET['town']);
 		if(town_exists($db, $town))
 		{
+			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
 			echo return_gpx_info($db,$town);
 		}
 		else
@@ -44,6 +43,7 @@ else
 	else if((isset($_GET['longitude'])) && (isset($_GET['latitude'])))
 	{
 		$town = get_town($db, $_GET['longitude'],$_GET['latitude']);
+		header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
 		echo return_gpx_info($db,$town);
 	}
 	else if(isset($_GET['wikidata']))
@@ -52,6 +52,7 @@ else
 		$town = get_town_wikidata($db, $_GET['wikidata']);
 		if(town_exists($db, $town))
 		{
+			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
 			echo return_gpx_info($db,$town);
 		}
 		else
@@ -67,6 +68,7 @@ else
 		$town = get_town_kennzahl($db, $_GET['gemeindekennzahl']);
 		if(town_exists($db, $town))
 		{
+			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
 			echo return_gpx_info($db,$town);
 		}
 		else
