@@ -617,7 +617,7 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 		
 		else if ($categorie=="naturdenkmal")
 		{
-			$listelement['editLink'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace("/","_",$row['id'])));
+			$listelement['editLink'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace(array("/"," "),"_",$row['id'])));
 			
 			if($row['commonscat']!="")
 			{
