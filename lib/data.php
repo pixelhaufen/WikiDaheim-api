@@ -1,114 +1,5 @@
 <?php
 
-function get_town(&$db, $lon, $lat)
-{
-	global $config;
-	
-	$lat = $db->real_escape_string($lat);
-	$lon = $db->real_escape_string($lon);
-
-	$sql = "SELECT gemeinde, ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS entfernung FROM " . $config['dbprefix'] . "gemeinde_geo ORDER BY entfernung LIMIT 0 , 1";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-	
-	$row = $res->fetch_array(MYSQLI_ASSOC);
-	$gemeinde = $row['gemeinde'];
-	
-	return $gemeinde;
-}
-
-function get_town_wikidata(&$db, $wikidata)
-{
-	global $config;
-	
-	$gemeinde = $wikidata;
-	$wikidata = $db->real_escape_string($wikidata);
-	$sql = "SELECT `gemeinde` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `wikidata` LIKE '$wikidata'";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-
-	while($row = $res->fetch_array(MYSQLI_ASSOC))
-	{
-		$gemeinde = $row['gemeinde'];
-	}
-	return $gemeinde;
-}
-
-function get_town_kennzahl(&$db, $kennzahl)
-{
-	global $config;
-	
-	$gemeinde = $kennzahl;
-	$kennzahl = $db->real_escape_string($kennzahl);
-	$sql = "SELECT `gemeinde` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeindekennzahl` LIKE '$kennzahl'";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-
-	while($row = $res->fetch_array(MYSQLI_ASSOC))
-	{
-		$gemeinde = $row['gemeinde'];
-	}
-	return $gemeinde;
-}
-
-function town_exists(&$db, $town)
-{
-	global $config;
-	
-	$sql = "SELECT `article_wikipedia` FROM  `" . $config['dbprefix'] . "search` WHERE  `article_wikipedia` LIKE  '".$town."'";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-	
-	$erg = $res->num_rows;
-	$res->free();
-	
-	if($erg == 1)
-	{
-		return true;
-	}
-	
-	return false;
-}
-
-function categorie_exists(&$db, $categorie)
-{
-	global $config;
-	
-	if($categorie == "commons")
-	{
-		return true;
-	}
-	
-	$categorie = $db->real_escape_string($categorie);
-	$sql = "SELECT * FROM `" . $config['dbprefix'] . "config` WHERE (`online`='1' OR `online`='2') AND `key` LIKE 'display' AND `data` LIKE '".$categorie."' AND  `type` LIKE 'list'";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-	
-	$erg = $res->num_rows;
-	$res->free();
-	if($erg == 1)
-	{
-		return true;
-	}
-	
-	return false;
-}
-
 function categorie_exists_internal(&$db, $categorie)
 {
 	global $config;
@@ -118,7 +9,11 @@ function categorie_exists_internal(&$db, $categorie)
 		return true;
 	}
 	
-	if($categorie == "request")
+	if($categorie == "wikidata")
+	{
+		return true;
+	}
+	if($categorie == "bilderwunsch")
 	{
 		return true;
 	}
@@ -139,40 +34,6 @@ function categorie_exists_internal(&$db, $categorie)
 	}
 	
 	return false;
-}
-
-function get_display_categories(&$db, $display_categories)
-{
-	global $config;
-	$categories = array();
-	
-	foreach($display_categories as $categorie)
-	{
-		if(categorie_exists($db, $categorie))
-		{
-			$categorie = $db->real_escape_string($categorie);
-			$sql = "SELECT `data` FROM `" . $config['dbprefix'] . "source_config` WHERE `key` LIKE 'display' AND `wiki` LIKE '".$categorie."'";
-			$res = $db->query($sql);
-			if($config['log'] > 2)
-			{
-				append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-			}
-			
-			while($row = $res->fetch_array(MYSQLI_ASSOC))
-			{
-				$cat = $row['data'];
-				$categories[$cat] = $categorie;
-			}
-	
-			$res->free();
-		}
-		else
-		{
-			$categories[$categorie] = $categorie;
-		}
-	}
-	
-	return $categories;
 }
 
 function get_commons_foto_name_by_cat(&$db,$commonscat,$feature)
@@ -319,13 +180,16 @@ function get_commons_categorie(&$db,$town,$categorie)
 			
 			if(($row[$feature] == 0) || ($row[$feature] == 2))
 			{
-				$listelement['uploadLink'] =  "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=WikiDaheim-at-commons&descriptionlang=de&categories=" . urlencode($commonscat) . "|" . urlencode(str_replace("Category:","",$feature_info['featurescat']));
+				$listelement['uploadLink'] =  "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=WikiDaheim-at-commons&captionlang=de&descriptionlang=de&categories=" . urlencode($commonscat) . "|" . urlencode(str_replace("Category:","",$feature_info['featurescat']));
 				$listelement['editLink'] = "https://commons.wikimedia.org/wiki/Category:" . rawurlencode($commonscat);
 				if($feature_info['info_false'] != "")
 				{
 					$listelement['beschreibung'] = $feature_info['info_false'];
 				}
 				$listelement['complete'] = false;
+				
+				$listelement['source']['title'] = "Commons";
+				$listelement['source']['link'] = $listelement['editLink'];
 				
 				if($row[$feature] == 2)
 				{
@@ -347,13 +211,16 @@ function get_commons_categorie(&$db,$town,$categorie)
 					foreach($fotos as $commons => $foto)
 					{
 						$listelement['foto'] = $foto;
-					
-						$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=WikiDaheim-at-commons&descriptionlang=de&categories=" . urlencode($commonscat) . "|" . urlencode(str_replace("Category:","",$commons));
+						
+						$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=WikiDaheim-at-commons&captionlang=de&descriptionlang=de&categories=" . urlencode($commonscat) . "|" . urlencode(str_replace("Category:","",$commons));
 						$listelement['editLink'] = "https://commons.wikimedia.org/wiki/" .  rawurlencode($commons);
 						if($feature_info['info_true'] != "")
 						{
 							$listelement['beschreibung'] = str_replace("#Category#",str_replace("Category:","",$commons),$feature_info['info_true']);
 						}
+						
+						$listelement['source']['title'] = "Commons";
+						$listelement['source']['link'] = $listelement['editLink'];
 					
 						$list[]=$listelement;
 					}
@@ -362,108 +229,6 @@ function get_commons_categorie(&$db,$town,$categorie)
 		} // feature loop
 	} // data loop
 	$res->free();
-	
-	return $list;
-}
-
-function get_external_categorie(&$db,$town,$categorie,$display_categorie)
-{
-	global $config;
-	$features = array();
-	$list = array();
-	
-	// town for categorie
-	$sql = "SELECT `gemeinde_".$categorie."` AS `town` FROM `" . $config['dbprefix'] . "search` WHERE `article_wikipedia` LIKE '".$town."'";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-	
-	$row = $res->fetch_array(MYSQLI_ASSOC);
-	$town = $row['town'];
-	$res->free();
-	
-	if ($town == "")
-	{
-		return $list;
-	}
-	
-	// features
-	$sql = "SELECT `feature`,`info_true`,`info_false` FROM `" . $config['dbprefix'] . $categorie . "_extern_features` WHERE `online` = 1";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-	
-	while($row = $res->fetch_array(MYSQLI_ASSOC))
-	{
-		$tmp=$row['feature'];
-		$features[$tmp]['info_true'] = $row['info_true'];
-		$features[$tmp]['info_false'] = $row['info_false'];
-	}
-	$res->free();
-	
-	// data
-	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_extern_data` WHERE (`online`='1' OR `online`='2') AND `gemeinde` LIKE '".$town."'";
-	$res = $db->query($sql);
-	if($config['log'] > 2)
-	{
-		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
-	}
-	
-	while($row = $res->fetch_array(MYSQLI_ASSOC))
-	{
-		$listelement = array();
-		$complete = 0;
-		
-		$listelement['category'] = $display_categorie;
-//		$listelement['lastUpdate'] = $row['data_update'];
-		foreach($features as $feature => $feature_info)
-		{
-			$listelement[$feature] = str_replace("''","",str_replace("\\","",$row[$feature]));
-			if($row[$feature] == "")
-			{
-				if($feature_info['info_false'] != "")
-				{
-					$listelement[$feature.'_info'] = $feature_info['info_false'];
-				}
-				$complete++;
-			}
-			else
-			{
-				if($feature_info['info_true'] != "")
-				{
-					$listelement[$feature.'_info'] = $feature_info['info_true'];
-				}
-			}
-		}
-		
-		// HARDCODED stuff
-		if ($categorie == "friedhoefe")
-		{
-			if ($listelement['name'] == "")
-			{
-				$listelement['name'] = "Friedhof";
-			}
-			
-			$listelement['beschreibung'] = "An diesen Koordinaten befindet sich ein Friedhof.";
-			/*if($row["wikidata"] != "")
-			{
-				$listelement['editLink'] = "https://www.wikidata.org/wiki/".$row["wikidata"];
-			}
-			else
-			{
-				$listelement['editLink'] = "https://de.wikipedia.org/wiki/Wikipedia:WikiDaheim";
-			}*/
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-cemeteries&categories=".str_replace(" ","+",$row['gemeinde'])."|Cemeteries_in_Austria_by_state&descriptionlang=de"; 
-		}
-		
-		$listelement['complete'] = false;
-		
-		$list[]=$listelement;
-	}
 	
 	return $list;
 }
@@ -577,12 +342,14 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlm-at&id=" . urlencode($row['objektid']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlm-at&fields[]=" . urlencode($row['objektid']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlm-at&id=" . urlencode($row['objektid']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Cultural+heritage+monuments+in+" . str_replace(" ","+",$row['gemeinde']);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlm-at&fields[]=" . urlencode($row['objektid']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Cultural+heritage+monuments+in+" . str_replace(" ","+",$row['gemeinde']);
 			}
+			$listelement['source']['title'] = "Denkmalliste";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
 		
 		else if($categorie=="publicart")
@@ -592,12 +359,14 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			$region = str_replace("AT-","at-",$row['region']);
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlpa-".urlencode($region)."&id=" . urlencode($row['id']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlpa-".urlencode($region)."fields[]=" . urlencode($row['id']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlpa-".urlencode($region)."&id=" . urlencode($row['id']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Public+art+in+" . str_replace(" ","+",$row['gemeinde']);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wlpa-".urlencode($region)."fields[]=" . urlencode($row['id']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Public+art+in+" . str_replace(" ","+",$row['gemeinde']);
 			}
+			$listelement['source']['title'] = "Kunstwerk";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 			
 		}
 		
@@ -607,12 +376,14 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=kellergasse-at&id=" . urlencode($row['region-iso']) . "&lat=" . urlencode($row['latitude']) . "&lon=" . urlencode($row['longitude']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=kellergasse-at&fields[]=" . urlencode($row['region-iso']) . "&lat=" . urlencode($row['latitude']) . "&lon=" . urlencode($row['longitude']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=kellergasse-at&id=" . urlencode($row['region-iso']) . "&lat=" . urlencode($row['latitude']) . "&lon=" . urlencode($row['longitude']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Kellergassen+in+Austria|" . str_replace(" ","+",$row['gemeinde']);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=kellergasse-at&fields[]=" . urlencode($row['region-iso']) . "&lat=" . urlencode($row['latitude']) . "&lon=" . urlencode($row['longitude']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Kellergassen+in+Austria|" . str_replace(" ","+",$row['gemeinde']);
 			}
+			$listelement['source']['title'] = "Kellergasse";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
 		
 		else if ($categorie=="naturdenkmal")
@@ -621,16 +392,18 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&id=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&fields[]=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else if($row['bezirk']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&id=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['bezirk']);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&fields[]=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['bezirk']);
 			}
 			else
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&id=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['gemeinde']);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&fields[]=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['gemeinde']);
 			}
+			$listelement['source']['title'] = "Naturdenkmal";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
 		
 		else if ($categorie=="hoehle")
@@ -639,12 +412,14 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-hoe&id=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-hoe&fields[]=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-hoe&id=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Protected+caves+in+" . str_replace(" ","+",$row['gemeinde']);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-hoe&fields[]=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Protected+caves+in+" . str_replace(" ","+",$row['gemeinde']);
 			}
+			$listelement['source']['title'] = "Höhle";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
 		
 		else if ($categorie=="landschaftsteil")
@@ -653,7 +428,7 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-glt&id=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-glt&fields[]=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else
 			{
@@ -669,8 +444,10 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 				{
 					$bundesland = "Styria";
 				}
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-glt&id=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Protected+landscape+elements+in+" . str_replace(" ","+",$bundesland);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-glt&fields[]=" . urlencode($row['id']) . "%7C%0A" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Protected+landscape+elements+in+" . str_replace(" ","+",$bundesland);
 			}
+			$listelement['source']['title'] = "Landschaftsteil";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
 		else if ($categorie=="naturpark")
 		{
@@ -678,12 +455,16 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-np&id=" . urlencode($row['id']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-np&fields[]=" . urlencode($row['id']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de
+&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-np&id=" . urlencode($row['id']) . "&descriptionlang=de&description=" . urlencode($row['name']);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-np&fields[]=" . urlencode($row['id']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de
+&description=" . urlencode($row['name']);
 			}
+			$listelement['source']['title'] = "Naturpark";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
 		else if ($categorie=="naturschutzgebiet")
 		{
@@ -691,7 +472,7 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			
 			if($row['commonscat']!="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nsg&id=" . urlencode($row['id']) . "%7C%0A" .  urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nsg&fields[]=" . urlencode($row['id']) . "%7C%0A" .  urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
 			}
 			else
 			{
@@ -731,8 +512,10 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 				{
 					$bundesland = "Vienna";
 				}
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nsg&id=" . urlencode($row['id']) . "%7C%0A" .  urlencode($row['region-iso']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Nature+reserves+in+" . str_replace(" ","+",$bundesland);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nsg&fields[]=" . urlencode($row['id']) . "%7C%0A" .  urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Nature+reserves+in+" . str_replace(" ","+",$bundesland);
 			}
+			$listelement['source']['title'] = "Naturschutzgebiet";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
 		
 		if($complete == 0)
@@ -750,7 +533,7 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 	return $list;
 }
 
-function get_request_categorie(&$db,$town,$categorie,$display_categorie)
+function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_location)
 {
 	global $config;
 	$features = array();
@@ -778,7 +561,8 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie)
 	$res->free();
 	
 	// data
-	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online`='1' OR `online`='2') AND `gemeinde` LIKE '".$town."'";
+	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online` = 1 OR `online` = 2) AND `latitude` <= ".$town_location['latitude']."+0.045 AND `latitude` >= ".$town_location['latitude']."-0.045 AND `longitude` <= ".$town_location['longitude']."+0.045 AND `longitude` >= ".$town_location['longitude']."-0.045";
+	
 	$res = $db->query($sql);
 	if($config['log'] > 2)
 	{
@@ -813,18 +597,42 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie)
 		}
 		
 		// HARDCODED stuff
-		if ($categorie == "request")
+		if ($categorie == "bilderwunsch")
 		{
-			$listelement['longitude'] += 0.00005;
+			$listelement['beschreibung'] = $listelement['article'];
+			$listelement['name'] = $listelement['description'];
 			if ($listelement['name'] == "")
 			{
 				$listelement['name'] = "Bilderwunsch";
 			}
+			$listelement['gemeinde'] = $town;
 			
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-bw&id=".urlencode($listelement['article'])."&description=".urlencode($listelement['description'])."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&caption=".urlencode($listelement['description'])."&captionlang=de";
+			
+			$listelement['editLink'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$listelement['article']);
+			$listelement['article'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$listelement['article']);
+			
+			$listelement['source']['title'] = "Bilderwunsch";
+			$listelement['source']['link'] = $listelement['article'];
+		}
+		
+		if ($categorie == "wikidata")
+		{
+			$listelement['name'] = $listelement['sLabel'];
+			if ($listelement['name'] == "")
+			{
+				$listelement['name'] = "Wikidata";
+			}
 			$listelement['beschreibung'] = $listelement['description'];
-			$listelement['editLink'] = $listelement['article'];
+			$listelement['gemeinde'] = $town;
 			
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at&categories=".str_replace(" ","+",$row['gemeinde'])."&descriptionlang=de"; 
+			$listelement['editLink'] = $listelement['article'];
+			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
+			
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			
+			$listelement['source']['title'] = "Wikidata";
+			$listelement['source']['link'] = $listelement['editLink'];
 		}
 		
 		$listelement['complete'] = false;
@@ -834,7 +642,7 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie)
 	return $list;
 }
 
-function get_wiki_categorie(&$db,$town,$categorie,$display_categorie)
+function get_wiki_categorie(&$db,$town,$categorie,$display_categorie,$town_location)
 {
 	global $config;
 	$categorie = $db->real_escape_string($categorie);
@@ -855,21 +663,17 @@ function get_wiki_categorie(&$db,$town,$categorie,$display_categorie)
 	{
 		return get_commons_categorie($db,$town,$categorie);
 	}
-	else if($type == "external")
-	{
-		return get_external_categorie($db,$town,$categorie,$display_categorie);
-	}
 	else if($type == "list")
 	{
 		return get_list_categorie($db,$town,$categorie,$display_categorie);
 	}
 	else if($type == "request")
 	{
-		return get_request_categorie($db,$town,$categorie,$display_categorie);
+		return get_request_categorie($db,$town,$categorie,$display_categorie,$town_location);
 	}
 	
 	$list = array();
-		
+	
 	return $list;
 }
 
@@ -965,6 +769,7 @@ function return_town_info(&$db, $town, $wiki, $categories)
 	global $config;
 	$error = 0;
 	$town_info = array();
+	$town_location = array();
 	
 	if($wiki)
 	{
@@ -988,7 +793,11 @@ function return_town_info(&$db, $town, $wiki, $categories)
 		
 		$town_info['location'] = array(
 					'latitude' => $row['latitude'],
-					'longitude' => $row['longitude'],
+					'longitude' => $row['longitude']
+				);
+		$town_location = array(
+					'latitude' => $row['latitude'],
+					'longitude' => $row['longitude']
 				);
 		
 		if($row['gemeindekennzahl'] != "")
@@ -1043,6 +852,23 @@ function return_town_info(&$db, $town, $wiki, $categories)
 	}
 	else
 	{
+		// geo
+		$sql = "SELECT `latitude`, `longitude` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
+		$res = $db->query($sql);
+		if($config['log'] > 2)
+		{
+			append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+		}
+		
+		$row = $res->fetch_array(MYSQLI_ASSOC);
+		
+		$town_location = array(
+					'latitude' => $row['latitude'],
+					'longitude' => $row['longitude']
+				);
+				
+		$res->free();
+		
 		$town_info = array
 		(
 			'categories' => array(),
@@ -1054,7 +880,7 @@ function return_town_info(&$db, $town, $wiki, $categories)
 	{
 		if(categorie_exists_internal($db, $categorie))
 		{
-			$town_info_categories = array_merge($town_info_categories,get_wiki_categorie($db, $town, $categorie, $display_categorie));
+			$town_info_categories = array_merge($town_info_categories,get_wiki_categorie($db, $town, $categorie, $display_categorie,$town_location));
 		}
 		else
 		{

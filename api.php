@@ -5,6 +5,9 @@ require_once "config/config.php"; // config db, etc
 require_once "lib/lib.php"; // config db, etc
 require_once "lib/error.php"; // error
 require_once "lib/structure.php"; // structure layout
+require_once "lib/get_town.php"; // get town
+require_once "lib/town_exists.php"; // get town
+require_once "lib/display_categories.php"; // display_categories
 require_once "lib/data.php"; // data
 
 // mysql
