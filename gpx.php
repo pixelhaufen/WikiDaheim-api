@@ -3,8 +3,10 @@ header('Content-type: application/gpx+xml');
 
 require_once "config/config.php"; // config db, etc
 require_once "lib/lib.php"; // config db, etc
-require_once "lib/data.php"; // data
-require_once "gpx/data.php"; // data
+require_once "lib/get_town.php"; // get town
+require_once "lib/town_exists.php"; // get town
+require_once "lib/display_categories.php"; // display categories
+require_once "lib/gpx.php"; // gpx
 
 // mysql
 $db = new mysqli($config['dbhost'], $config['dbuser'], $config['dbpassword'], $config['dbname']);
@@ -22,6 +24,16 @@ if ($db->connect_error)
 }
 else
 {
+	if(isset($_GET['categories']))
+	{
+		$categories = explode("|",$_GET['categories']);
+		$categories = get_display_categories($db, $categories);
+	}
+	else
+	{
+		$categories = get_all_categories($db);
+	}
+	
 	$town = "";
 	
 	if(isset($_GET['town']))
@@ -30,7 +42,7 @@ else
 		if(town_exists($db, $town))
 		{
 			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
-			echo return_gpx_info($db,$town);
+			echo return_gpx_info($db,$town,$categories);
 		}
 		else
 		{
@@ -44,7 +56,7 @@ else
 	{
 		$town = get_town($db, $_GET['longitude'],$_GET['latitude']);
 		header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
-		echo return_gpx_info($db,$town);
+		echo return_gpx_info($db,$town,$categories);
 	}
 	else if(isset($_GET['wikidata']))
 	{
@@ -53,7 +65,7 @@ else
 		if(town_exists($db, $town))
 		{
 			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
-			echo return_gpx_info($db,$town);
+			echo return_gpx_info($db,$town,$categories);
 		}
 		else
 		{
@@ -69,7 +81,7 @@ else
 		if(town_exists($db, $town))
 		{
 			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
-			echo return_gpx_info($db,$town);
+			echo return_gpx_info($db,$town,$categories);
 		}
 		else
 		{
