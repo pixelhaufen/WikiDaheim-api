@@ -517,6 +517,22 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			$listelement['source']['title'] = "Naturschutzgebiet";
 			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
 		}
+		else if ($categorie=="tdd")
+		{
+
+			$listelement['editLink'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#objektid-".urlencode(str_replace("/","_",$row['objektid'])));
+			
+			if($row['commonscat']!="")
+			{
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=tdd-at&fields[]=" . urlencode($row['objektid']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=" . urlencode(str_replace("&quot;","\"",$row['commonscat']));
+			}
+			else
+			{
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=tdd-at&fields[]=" . urlencode($row['objektid']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Tag+des+Denkmals+2019";
+			}
+			$listelement['source']['title'] = "Denkmalliste";
+			$listelement['source']['link'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']);
+		}
 		
 		if($complete == 0)
 		{
@@ -560,8 +576,25 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 	}
 	$res->free();
 	
+	
+	$distance = 1;
+	$sql = "SELECT `distance` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$distance = $row['distance'];
+	}
+	$res->free();
+	
+	$distance = $distance * 0.045;
+	
 	// data
-	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online` = 1 OR `online` = 2) AND `latitude` <= ".$town_location['latitude']."+0.045 AND `latitude` >= ".$town_location['latitude']."-0.045 AND `longitude` <= ".$town_location['longitude']."+0.045 AND `longitude` >= ".$town_location['longitude']."-0.045";
+	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online` = 1 OR `online` = 2) AND `latitude` <= ".$town_location['latitude']."+$distance AND `latitude` >= ".$town_location['latitude']."-$distance AND `longitude` <= ".$town_location['longitude']."+$distance AND `longitude` >= ".$town_location['longitude']."-$distance";
 	
 	$res = $db->query($sql);
 	if($config['log'] > 2)
