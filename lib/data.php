@@ -398,6 +398,10 @@ function get_list_categorie(&$db,$town,$categorie,$display_categorie)
 			{
 				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&fields[]=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['bezirk']);
 			}
+			else if($row['region-iso']=="AT-9")
+			{
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&fields[]=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+Vienna";
+			}
 			else
 			{
 				$listelement['uploadLink'] = "https://commons.wikimedia.org/wiki/special:uploadWizard?campaign=wle-at-nd&fields[]=" . urlencode($row['id']) . "|" . urlencode($row['region-iso']) . "&captionlang=de&caption=" . urlencode($row['name']) . "&descriptionlang=de&description=" . urlencode($row['name']) . "&categories=Natural+monuments+in+" . str_replace(" ","+",$row['gemeinde']);
@@ -590,11 +594,8 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 		$distance = $row['distance'];
 	}
 	$res->free();
-	
-	$distance = $distance * 0.045;
-	
-	// data
-	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online` = 1 OR `online` = 2) AND `latitude` <= ".$town_location['latitude']."+$distance AND `latitude` >= ".$town_location['latitude']."-$distance AND `longitude` <= ".$town_location['longitude']."+$distance AND `longitude` >= ".$town_location['longitude']."-$distance";
+		
+	$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$town_location['latitude'].") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$town_location['longitude'].") ) + sin( radians(".$town_location['latitude'].") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . $categorie . "_external_data` ORDER BY `entfernung`) AS `data` WHERE `entfernung` <= ".$distance;
 	
 	$res = $db->query($sql);
 	if($config['log'] > 2)
