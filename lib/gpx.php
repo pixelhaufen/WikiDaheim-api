@@ -31,7 +31,7 @@ function get_gpx_list_categorie(&$db,$town,$categorie,$display_categorie)
 
 	while($row = $res->fetch_array(MYSQLI_ASSOC))
 	{
-		if(($row['latitude']!="")&&($row['longitude']!=""))
+		if(($row['latitude']!="")&&($row['longitude']!="")&&($row['foto']=="")) // only no foto
 		{
 			echo ' <wpt lat="'.$row['latitude'].'" lon="'.$row['longitude'].'">'."\n";
 			echo "  <ele>0</ele>\n";
@@ -82,7 +82,48 @@ function get_gpx_request_categorie(&$db,$town,$categorie,$display_categorie,$tow
 	global $config;
 	
 	// data
-	$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online` = 1 OR `online` = 2) AND `latitude` <= ".$town_location['latitude']."+0.045 AND `latitude` >= ".$town_location['latitude']."-0.045 AND `longitude` <= ".$town_location['longitude']."+0.045 AND `longitude` >= ".$town_location['longitude']."-0.045";
+	/*$sql = "SELECT * FROM `" . $config['dbprefix'] . $categorie . "_external_data` WHERE (`online` = 1 OR `online` = 2) AND `latitude` <= ".$town_location['latitude']."+0.045 AND `latitude` >= ".$town_location['latitude']."-0.045 AND `longitude` <= ".$town_location['longitude']."+0.045 AND `longitude` >= ".$town_location['longitude']."-0.045";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}*/
+	
+	$distance = 1;
+	$sql = "SELECT `distance` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$distance = $row['distance'];
+	}
+	$res->free();
+	
+	$sql = "SELECT IFNULL(max(`latitude`) + (min(`latitude`) - max(`latitude`))/2, ".$town_location['latitude'].") AS `latitude`, IFNULL(max(`longitude`) + (min(`longitude`) - max(`longitude`))/2, ".$town_location['longitude'].") AS `longitude`,( 6371 * acos( cos( radians(max(`latitude`)) ) * cos( radians( min(`latitude`) ) ) * cos( radians(max(`longitude`)) - radians(min(`longitude`)) ) + sin( radians (max(`latitude`)) ) * sin( radians (min( `latitude` ) ) ) ) ) AS `distance` FROM (SELECT * FROM `" . $config['dbprefix'] ."denkmalliste_list_data`  WHERE `latitude` != 0 AND `longitude` != 0 AND (`online` = 1 OR `online` = 2) AND `gemeinde` LIKE '".$town."') AS `coordinates`";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+
+	$lat = $lon = 0;
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$lat = $row['latitude'];
+		$lon = $row['longitude'];
+		if($distance < ($row['distance'])/2)
+		{
+			$distance = $row['distance']/2+0.001;
+		}
+	}
+	$res->free();
+	
+	$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . $categorie . "_external_data` ORDER BY `entfernung`) AS `data` WHERE `entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
+	
 	$res = $db->query($sql);
 	if($config['log'] > 2)
 	{
