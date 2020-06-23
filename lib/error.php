@@ -128,4 +128,61 @@ function return_error_unknown_gemeindekennzahl($info)
 	return json_encode($error);
 }
 
+// feedback
+function return_error_unknown_request()
+{
+	$error = array
+	(
+		'error' => array
+		(
+			'code' => 'ERROR',
+			'info' => 'Unknown request',
+		),
+	);
+	
+	return json_encode($error);
+}
+
+function return_error_unknown_key($key)
+{
+	$error = array
+	(
+		'error' => array
+		(
+			'code' => 'unknown_key',
+			'info' => 'Unrecognized value for parameter "type":'.$key.'.',
+		),
+	);
+	
+	return json_encode($error);
+}
+
+function return_error_illegal_feedback($missing)
+{
+	$error = array
+	(
+		'error' => array
+		(
+			'code' => 'illegal_'.$missing,
+			'info' => 'Unrecognized '.$missing.'.',
+		),
+	);
+	
+	return json_encode($error);
+}
+
+function return_error_feedback_faild()
+{
+	$error = array
+	(
+		'error' => array
+		(
+			'code' => 'ERROR',
+			'info' => 'Faild to save feedback',
+		),
+	);
+	
+	return json_encode($error);
+}
+
 ?>
