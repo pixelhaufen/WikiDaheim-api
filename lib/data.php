@@ -615,6 +615,7 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 	$res->free();
 	
 	$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . $categorie . "_external_data` ORDER BY `entfernung`) AS `data` WHERE `entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
+	if ($categorie == "wikidata"){$sql .= " AND (`place` LIKE '' OR `place` LIKE '".$town."')";}
 	
 	$res = $db->query($sql);
 	if($config['log'] > 2)
