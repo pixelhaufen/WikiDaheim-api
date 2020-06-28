@@ -93,7 +93,7 @@ function get_commons_foto_name(&$db,$commonscat,$feature)
 	return $foto;
 }
 
-function get_commons_categorie(&$db,$town,$categorie)
+function get_commons_categorie(&$db,$town,$categorie,$town_location)
 {
 	global $config;
 	$categorie = $db->real_escape_string($categorie);
@@ -229,6 +229,133 @@ function get_commons_categorie(&$db,$town,$categorie)
 		} // feature loop
 	} // data loop
 	$res->free();
+	
+	
+	// wikidata
+	$sql = "SELECT `feature` FROM `" . $config['dbprefix'] . "wikidata_external_category_features_query` WHERE 1";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+
+	$wikidata_features = array();
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$wikidata_features[] = $db->real_escape_string($row['feature']);
+	}
+
+	$res->free();
+	
+	// w_features
+	$w_features = array();
+	$sql = "SELECT `feature`,`info_true`,`info_false` FROM `" . $config['dbprefix'] . "wikidata_external_features` WHERE `online` = 1";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$tmp=$row['feature'];
+		$w_features[$tmp]['info_true'] = $row['info_true'];
+		$w_features[$tmp]['info_false'] = $row['info_false'];
+	}
+	$res->free();
+	
+	// distance
+	$distance = 1;
+	$sql = "SELECT `distance` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$distance = $row['distance'];
+	}
+	$res->free();
+	
+	$sql = "SELECT IFNULL(max(`latitude`) + (min(`latitude`) - max(`latitude`))/2, ".$town_location['latitude'].") AS `latitude`, IFNULL(max(`longitude`) + (min(`longitude`) - max(`longitude`))/2, ".$town_location['longitude'].") AS `longitude`,( 6371 * acos( cos( radians(max(`latitude`)) ) * cos( radians( min(`latitude`) ) ) * cos( radians(max(`longitude`)) - radians(min(`longitude`)) ) + sin( radians (max(`latitude`)) ) * sin( radians (min( `latitude` ) ) ) ) ) AS `distance` FROM (SELECT * FROM `" . $config['dbprefix'] ."denkmalliste_list_data`  WHERE `latitude` != 0 AND `longitude` != 0 AND (`online` = 1 OR `online` = 2) AND `gemeinde` LIKE '".$town."') AS `coordinates`";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+
+	$lat = $lon = 0;
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$lat = $row['latitude'];
+		$lon = $row['longitude'];
+		if($distance < ($row['distance'])/2)
+		{
+			$distance = $row['distance']/2+0.001;
+		}
+	}
+	$res->free();
+	
+	foreach($wikidata_features as $wikidata_feature)
+	{
+		$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . "wikidata_external_data` ORDER BY `entfernung`) AS `data` WHERE `entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
+		$sql .= " AND (`place` LIKE '' OR `place` LIKE '".$town."') AND `".$wikidata_feature."` = 1";
+		$res = $db->query($sql);
+		if($config['log'] > 2)
+		{
+			append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+		}
+		
+		while($row = $res->fetch_array(MYSQLI_ASSOC))
+		{
+			$listelement = array();
+			$complete = 0;
+		
+			$listelement['category'] = $categorie;
+			// !!!!!!!!!!
+			foreach($w_features as $feature => $feature_info)
+			{
+				$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
+				if($row[$feature] == "")
+				{
+					if($feature_info['info_false'] != "")
+					{
+						$listelement[$feature.'_info'] = $feature_info['info_false'];
+					}
+					$complete++;
+				}
+				else
+				{
+					if($feature_info['info_true'] != "")
+					{
+						$listelement[$feature.'_info'] = $feature_info['info_true'];
+					}
+				}
+			}
+			
+			$listelement['name'] = $listelement['sLabel'];
+			if ($listelement['name'] == "")
+			{
+				$listelement['name'] = "Wikidata";
+			}
+			$listelement['beschreibung'] = $listelement['description'];
+			$listelement['gemeinde'] = $town;
+			
+			$listelement['editLink'] = $listelement['article'];
+			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
+			
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			
+			$listelement['source']['title'] = "Wikidata";
+			$listelement['source']['link'] = $listelement['editLink'];
+			
+			$listelement['complete'] = false;
+			$list[]=$listelement;
+		}
+		$res->free();
+	}
 	
 	return $list;
 }
@@ -715,7 +842,7 @@ function get_wiki_categorie(&$db,$town,$categorie,$display_categorie,$town_locat
 	
 	if($type == "commons")
 	{
-		return get_commons_categorie($db,$town,$categorie);
+		return get_commons_categorie($db,$town,$categorie,$town_location);
 	}
 	else if($type == "list")
 	{
