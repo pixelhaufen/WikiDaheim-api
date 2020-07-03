@@ -742,7 +742,24 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 	$res->free();
 	
 	$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . $categorie . "_external_data` ORDER BY `entfernung`) AS `data` WHERE `entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
-	if ($categorie == "wikidata"){$sql .= " AND (`place` LIKE '' OR `place` LIKE '".$town."')";}
+	if ($categorie == "wikidata")
+	{
+		$sql .= " AND (`place` LIKE '' OR `place` LIKE '".$town."')";
+		
+		$wikidata_sql = "SELECT `feature` FROM `" . $config['dbprefix'] . "wikidata_external_category_features_query` WHERE 1";
+		$res = $db->query($wikidata_sql);
+		if($config['log'] > 2)
+		{
+			append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+		}
+		while($row = $res->fetch_array(MYSQLI_ASSOC))
+		{
+			$wikidata_features = $db->real_escape_string($row['feature']);
+			$sql .= " AND `".$wikidata_features."` = 0";
+		}
+
+		$res->free();
+	}
 	
 	$res = $db->query($sql);
 	if($config['log'] > 2)
