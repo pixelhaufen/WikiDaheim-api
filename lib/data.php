@@ -346,7 +346,7 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 			$listelement['editLink'] = $listelement['article'];
 			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
 			
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-commons&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
 			
 			$listelement['source']['title'] = "Wikidata";
 			$listelement['source']['link'] = $listelement['editLink'];
