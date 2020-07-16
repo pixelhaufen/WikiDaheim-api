@@ -346,7 +346,7 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 			$listelement['editLink'] = $listelement['article'];
 			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
 			
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-commons&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-commons&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
 			
 			$listelement['source']['title'] = "Wikidata";
 			$listelement['source']['link'] = $listelement['editLink'];
@@ -691,6 +691,18 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 		return $list;
 	}
 	
+	// commons categorie
+	$sql = "SELECT `commonscat` FROM (SELECT `article_wikipedia` AS `town` FROM `" . $config['dbprefix'] . "search` WHERE `article_wikipedia` LIKE '".$town."') AS `wp` LEFT JOIN (SELECT `commonscat`, `article` FROM `" . $config['dbprefix'] . "wikipedia_township_data`) AS `co` ON `wp`.`town` = `co`.`article`";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+
+	$row = $res->fetch_array(MYSQLI_ASSOC);
+	$commonscat = $row['commonscat'];
+	$res->free();
+	
 	// features
 	$sql = "SELECT `feature`,`info_true`,`info_false` FROM `" . $config['dbprefix'] . $categorie . "_external_features` WHERE `online` = 1";
 	$res = $db->query($sql);
@@ -805,7 +817,7 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 			}
 			$listelement['gemeinde'] = $town;
 			
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-bw&id=".urlencode($listelement['article'])."&description=".urlencode($listelement['description'])."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&caption=".urlencode($listelement['description'])."&captionlang=de";
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-bw&id=".urlencode($listelement['article'])."&description=".urlencode($listelement['description'])."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&caption=".urlencode($listelement['description'])."&captionlang=de";
 			
 			$listelement['editLink'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$listelement['article']);
 			$listelement['article'] = str_replace(" ","_","https://de.wikipedia.org/wiki/".$listelement['article']);
@@ -827,7 +839,7 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 			$listelement['editLink'] = $listelement['article'];
 			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
 			
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$town)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
 			
 			$listelement['source']['title'] = "Wikidata";
 			$listelement['source']['link'] = $listelement['editLink'];
