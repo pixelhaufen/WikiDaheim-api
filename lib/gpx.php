@@ -1,6 +1,6 @@
 <?php
 
-function get_gpx_list_categorie(&$db,$town,$categorie,$display_categorie)
+function get_gpx_list_categorie(&$db,$town,$categorie,$display_categorie,$data)
 {
 	global $config;
 	
@@ -31,46 +31,27 @@ function get_gpx_list_categorie(&$db,$town,$categorie,$display_categorie)
 
 	while($row = $res->fetch_array(MYSQLI_ASSOC))
 	{
-		if(($row['latitude']!="")&&($row['longitude']!="")&&($row['foto']=="")) // only no foto
+		if($data=="all")
 		{
-			echo ' <wpt lat="'.$row['latitude'].'" lon="'.$row['longitude'].'">'."\n";
-			echo "  <ele>0</ele>\n";
-			echo '  <name><![CDATA['.$row['name'].']]></name>'."\n";
-			echo '  <desc><![CDATA['.html_entity_decode(strip_tags($row['beschreibung'])).']]></desc>'."\n";
-/*			if($categorie=="denkmalliste")
+			if(($row['latitude']!="")&&($row['longitude']!=""))
 			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#objektid-".urlencode(str_replace("/","_",$row['objektid']))).']]></link>';
+				echo ' <wpt lat="'.$row['latitude'].'" lon="'.$row['longitude'].'">'."\n";
+				echo "  <ele>0</ele>\n";
+				echo '  <name><![CDATA['.$row['name'].']]></name>'."\n";
+				echo '  <desc><![CDATA['.html_entity_decode(strip_tags($row['beschreibung'])).']]></desc>'."\n";
+				echo ' </wpt>'."\n";
 			}
-			else if($categorie=="publicart")
+		}
+		else
+		{
+			if(($row['latitude']!="")&&($row['longitude']!="")&&($row['foto']=="")) // only no foto
 			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#id-".urlencode(str_replace("/","_",$row['id']))).']]></link>';
+				echo ' <wpt lat="'.$row['latitude'].'" lon="'.$row['longitude'].'">'."\n";
+				echo "  <ele>0</ele>\n";
+				echo '  <name><![CDATA['.$row['name'].']]></name>'."\n";
+				echo '  <desc><![CDATA['.html_entity_decode(strip_tags($row['beschreibung'])).']]></desc>'."\n";
+				echo ' </wpt>'."\n";
 			}
-			else if($categorie=="kellergasse")
-			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace(array("/"," "),"_",$row['name']))).']]></link>';
-			}
-			else if ($categorie=="naturdenkmal")
-			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace("/","_",$row['id']))).']]></link>';
-			}
-			else if ($categorie=="hoehle")
-			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace("/","_",$row['id']))).']]></link>';
-			}
-			else if ($categorie=="landschaftsteil")
-			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace("/","_",$row['id']))).']]></link>';
-			}
-			else if ($categorie=="naturpark")
-			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace("/","_",$row['id']))).']]></link>';
-			}
-			else if ($categorie=="naturschutzgebiet")
-			{
-				echo '<link><![CDATA['.str_replace(" ","_","https://de.wikipedia.org/wiki/".$row['article']."#".urlencode(str_replace("/","_",$row['id']))).']]></link>';
-			}
-			echo "\n";*/
-			echo ' </wpt>'."\n";
 		}
 	}
 	
@@ -151,7 +132,7 @@ function get_gpx_request_categorie(&$db,$town,$categorie,$display_categorie,$tow
 	$res->free();
 }
 
-function get_gpx_categorie(&$db, $town, $categorie, $display_categorie, $town_location)
+function get_gpx_categorie(&$db, $town, $categorie, $display_categorie, $town_location, $data)
 {
 	global $config;
 	$categorie = $db->real_escape_string($categorie);
@@ -170,7 +151,7 @@ function get_gpx_categorie(&$db, $town, $categorie, $display_categorie, $town_lo
 	
 	if($type == "list")
 	{
-		return get_gpx_list_categorie($db,$town,$categorie,$display_categorie);
+		return get_gpx_list_categorie($db,$town,$categorie,$display_categorie,$data);
 	}
 	else if($type == "request")
 	{
@@ -178,7 +159,7 @@ function get_gpx_categorie(&$db, $town, $categorie, $display_categorie, $town_lo
 	}
 }
 
-function return_gpx_info(&$db,$town,$categories)
+function return_gpx_info(&$db,$town,$categories,$data)
 {
 	global $config;
 	echo '<?xml version="1.0" standalone="yes"?>
@@ -205,7 +186,7 @@ function return_gpx_info(&$db,$town,$categories)
 		
 	foreach($categories as $categorie => $display_categorie)
 	{
-		get_gpx_categorie($db, $town, $categorie, $display_categorie, $town_location);
+		get_gpx_categorie($db, $town, $categorie, $display_categorie, $town_location, $data);
 	}
 	
 	echo '</gpx>';

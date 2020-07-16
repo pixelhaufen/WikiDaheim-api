@@ -34,6 +34,12 @@ else
 		$categories = get_all_categories($db);
 	}
 	
+	$data = "";
+	if(isset($_GET['data']))
+	{
+		$data = "all";
+	}
+	
 	$town = "";
 	
 	if(isset($_GET['town']))
@@ -42,7 +48,7 @@ else
 		if(town_exists($db, $town))
 		{
 			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
-			echo return_gpx_info($db,$town,$categories);
+			echo return_gpx_info($db,$town,$categories,$data);
 		}
 		else
 		{
@@ -56,7 +62,7 @@ else
 	{
 		$town = get_town($db, $_GET['longitude'],$_GET['latitude']);
 		header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
-		echo return_gpx_info($db,$town,$categories);
+		echo return_gpx_info($db,$town,$categories,$data);
 	}
 	else if(isset($_GET['wikidata']))
 	{
@@ -65,7 +71,7 @@ else
 		if(town_exists($db, $town))
 		{
 			header('Content-disposition: attachment; filename=WikiDaheim_'.str_replace(" ","_",$town).'.gpx');
-			echo return_gpx_info($db,$town,$categories);
+			echo return_gpx_info($db,$town,$categories,$data);
 		}
 		else
 		{
