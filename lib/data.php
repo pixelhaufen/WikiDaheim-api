@@ -279,7 +279,20 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 	}
 	$res->free();
 	
-	$sql = "SELECT IFNULL(max(`latitude`) + (min(`latitude`) - max(`latitude`))/2, ".$town_location['latitude'].") AS `latitude`, IFNULL(max(`longitude`) + (min(`longitude`) - max(`longitude`))/2, ".$town_location['longitude'].") AS `longitude`,( 6371 * acos( cos( radians(max(`latitude`)) ) * cos( radians( min(`latitude`) ) ) * cos( radians(max(`longitude`)) - radians(min(`longitude`)) ) + sin( radians (max(`latitude`)) ) * sin( radians (min( `latitude` ) ) ) ) ) AS `distance` FROM (SELECT * FROM `" . $config['dbprefix'] ."denkmalliste_list_data`  WHERE `latitude` != 0 AND `longitude` != 0 AND (`online` = 1 OR `online` = 2) AND `gemeinde` LIKE '".$town."') AS `coordinates`";
+	$denkmalliste_town = "";
+	$sql = "SELECT `gemeinde_denkmalliste` FROM `test_search` WHERE `article_wikipedia` LIKE '".$town."'";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$denkmalliste_town = $row['gemeinde_denkmalliste'];
+	}
+	$res->free();
+	
+	$sql = "SELECT IFNULL(max(`latitude`) + (min(`latitude`) - max(`latitude`))/2, ".$town_location['latitude'].") AS `latitude`, IFNULL(max(`longitude`) + (min(`longitude`) - max(`longitude`))/2, ".$town_location['longitude'].") AS `longitude`,( 6371 * acos( cos( radians(max(`latitude`)) ) * cos( radians( min(`latitude`) ) ) * cos( radians(max(`longitude`)) - radians(min(`longitude`)) ) + sin( radians (max(`latitude`)) ) * sin( radians (min( `latitude` ) ) ) ) ) AS `distance` FROM (SELECT * FROM `" . $config['dbprefix'] ."denkmalliste_list_data`  WHERE `latitude` != 0 AND `longitude` != 0 AND (`online` = 1 OR `online` = 2) AND `gemeinde` LIKE '".$denkmalliste_town."') AS `coordinates`";
 	$res = $db->query($sql);
 	if($config['log'] > 2)
 	{
@@ -300,8 +313,8 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 	
 	foreach($wikidata_features as $wikidata_feature)
 	{
-		$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . "wikidata_external_data` ORDER BY `entfernung`) AS `data` WHERE `entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
-		$sql .= " AND (`place` LIKE '' OR `place` LIKE '".$town."') AND `".$wikidata_feature."` = 1";
+		$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . "wikidata_external_data` ORDER BY `entfernung`) AS `data` WHERE ((`entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
+		$sql .= " AND `place` LIKE '') OR `place` LIKE '".$town."') AND `".$wikidata_feature."` = 1";
 		$res = $db->query($sql);
 		if($config['log'] > 2)
 		{
@@ -734,7 +747,20 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 	}
 	$res->free();
 	
-	$sql = "SELECT IFNULL(max(`latitude`) + (min(`latitude`) - max(`latitude`))/2, ".$town_location['latitude'].") AS `latitude`, IFNULL(max(`longitude`) + (min(`longitude`) - max(`longitude`))/2, ".$town_location['longitude'].") AS `longitude`,( 6371 * acos( cos( radians(max(`latitude`)) ) * cos( radians( min(`latitude`) ) ) * cos( radians(max(`longitude`)) - radians(min(`longitude`)) ) + sin( radians (max(`latitude`)) ) * sin( radians (min( `latitude` ) ) ) ) ) AS `distance` FROM (SELECT * FROM `" . $config['dbprefix'] ."denkmalliste_list_data`  WHERE `latitude` != 0 AND `longitude` != 0 AND (`online` = 1 OR `online` = 2) AND `gemeinde` LIKE '".$town."') AS `coordinates`";
+	$denkmalliste_town = "";
+	$sql = "SELECT `gemeinde_denkmalliste` FROM `test_search` WHERE `article_wikipedia` LIKE '".$town."'";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$denkmalliste_town = $row['gemeinde_denkmalliste'];
+	}
+	$res->free();
+	
+	$sql = "SELECT IFNULL(max(`latitude`) + (min(`latitude`) - max(`latitude`))/2, ".$town_location['latitude'].") AS `latitude`, IFNULL(max(`longitude`) + (min(`longitude`) - max(`longitude`))/2, ".$town_location['longitude'].") AS `longitude`,( 6371 * acos( cos( radians(max(`latitude`)) ) * cos( radians( min(`latitude`) ) ) * cos( radians(max(`longitude`)) - radians(min(`longitude`)) ) + sin( radians (max(`latitude`)) ) * sin( radians (min( `latitude` ) ) ) ) ) AS `distance` FROM (SELECT * FROM `" . $config['dbprefix'] ."denkmalliste_list_data`  WHERE `latitude` != 0 AND `longitude` != 0 AND (`online` = 1 OR `online` = 2) AND `gemeinde` LIKE '".$denkmalliste_town."') AS `coordinates`";
 	$res = $db->query($sql);
 	if($config['log'] > 2)
 	{
@@ -753,10 +779,15 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 	}
 	$res->free();
 	
-	$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . $categorie . "_external_data` ORDER BY `entfernung`) AS `data` WHERE `entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
-	if ($categorie == "wikidata")
+	$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . $categorie . "_external_data` ORDER BY `entfernung`) AS `data` WHERE ";
+	if ($categorie != "wikidata")
 	{
-		$sql .= " AND (`place` LIKE '' OR `place` LIKE '".$town."')";
+		$sql .= "`entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
+	}
+	else
+	{
+		$sql .= "(`entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
+		$sql .= " AND `place` LIKE '') OR `place` LIKE '".$town."'";
 		
 		$wikidata_sql = "SELECT `feature` FROM `" . $config['dbprefix'] . "wikidata_external_category_features_query` WHERE 1";
 		$res = $db->query($wikidata_sql);
