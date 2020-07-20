@@ -40,7 +40,10 @@ function get_commons_foto_name_by_cat(&$db,$commonscat,$feature)
 {
 	global $config;
 	$fotos = array();
+	$commonscats_commons = array();
 	$commonscats = array();
+	
+	// get commonscats
 	$sql = "SELECT `commons_feature` FROM `" . $config['dbprefix'] . "commons_gemeide_feature` WHERE `feature` LIKE '$feature' AND `commons_gemeinde` LIKE '$commonscat'";
 	$res = $db->query($sql);
 	if($config['log'] > 2)
@@ -50,9 +53,27 @@ function get_commons_foto_name_by_cat(&$db,$commonscat,$feature)
 	
 	while($row = $res->fetch_array(MYSQLI_ASSOC))
 	{
-		$commonscats[] = $row['commons_feature'];
+		$commonscats_commons[] = $row['commons_feature'];
 	}
 	$res->free();
+	
+	// remove wikidata
+	foreach($commonscats_commons as $commonsfeature)
+	{
+		$sql = "SELECT count(*) AS `number` FROM `" . $config['dbprefix'] . "wikidata_external_data` WHERE `commonscat` LIKE '" . str_replace("Category:","",$commonsfeature) . "'";
+		$res = $db->query($sql);
+		if($config['log'] > 2)
+		{
+			append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+		}
+		
+		$row = $res->fetch_array(MYSQLI_ASSOC);
+		if($row['number']==0)
+		{
+			$commonscats[] = $commonsfeature;
+		}
+		$res->free();
+	}
 	
 	foreach($commonscats as $commonsfeature)
 	{
@@ -264,6 +285,23 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 	}
 	$res->free();
 	
+	// wikidata featurescat
+	$wikidata_category_features = array();
+	$sql = "SELECT `feature`,`alias` FROM `" . $config['dbprefix'] . "wikidata_external_category_features_alias`";
+	$res = $db->query($sql);
+	if($config['log'] > 2)
+	{
+		append_file("log/api.txt","\n".date(DATE_RFC822)." \t para \t sql: \t ".$sql);
+	}
+
+	while($row = $res->fetch_array(MYSQLI_ASSOC))
+	{
+		$tmp=$row['feature'];
+		$wikidata_category_features[$tmp] = $row['alias'];
+	}
+	$res->free();
+	
+	
 	// distance
 	$distance = 1;
 	$sql = "SELECT `distance` FROM `" . $config['dbprefix'] . "gemeinde_geo` WHERE `gemeinde` LIKE '".$town."'";
@@ -360,7 +398,15 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 			$listelement['editLink'] = $listelement['article'];
 			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
 			
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-commons&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			if($listelement['commonscat']=="")
+			{
+				$commonscat_feature = str_replace("Category:","",$wikidata_category_features[$wikidata_feature]);
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-commons&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$commonscat)."|".str_replace(" ","+",$commonscat_feature)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			}
+			else
+			{
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-commons&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$listelement['commonscat'])."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			}
 			
 			$listelement['source']['title'] = "Wikidata";
 			$listelement['source']['link'] = $listelement['editLink'];
@@ -871,7 +917,14 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 			$listelement['editLink'] = $listelement['article'];
 			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
 			
-			$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			if($listelement['commonscat']=="")
+			{
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			}
+			else
+			{
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$listelement['commonscat'])."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+			}
 			
 			$listelement['source']['title'] = "Wikidata";
 			$listelement['source']['link'] = $listelement['editLink'];
