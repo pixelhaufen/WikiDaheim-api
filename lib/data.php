@@ -313,8 +313,9 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 	
 	foreach($wikidata_features as $wikidata_feature)
 	{
-		$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . "wikidata_external_data` ORDER BY `entfernung`) AS `data` WHERE ((`entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
-		$sql .= " AND `place` LIKE '') OR `place` LIKE '".$town."') AND `".$wikidata_feature."` = 1";
+		$sql = "SELECT * FROM (SELECT * , ( 6371 * acos( cos( radians(".$lat.") ) * cos( radians( `latitude` ) ) * cos( radians( `longitude` ) - radians(".$lon.") ) + sin( radians(".$lat.") ) * sin( radians( `latitude` ) ) ) ) AS `entfernung` FROM `" . $config['dbprefix'] . "wikidata_external_data` ORDER BY `entfernung`) AS `data` WHERE ";
+		$sql .= "( ( (`entfernung` <= " . $distance . "  AND `place` LIKE '') OR `place` LIKE '".$town."') AND `".$wikidata_feature."` = 1)";
+		$sql .= "AND (`online` = 1 OR `online` = 2)";
 		$res = $db->query($sql);
 		if($config['log'] > 2)
 		{
@@ -786,8 +787,8 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 	}
 	else
 	{
-		$sql .= "(`entfernung` <= " . $distance . " AND (`online` = 1 OR `online` = 2)";
-		$sql .= " AND `place` LIKE '') OR `place` LIKE '".$town."'";
+		$sql .= "( (`entfernung` <= " . $distance . " AND `place` LIKE '') OR `place` LIKE '".$town."') ";
+		$sql .= "AND (`online` = 1 OR `online` = 2)";
 		
 		$wikidata_sql = "SELECT `feature` FROM `" . $config['dbprefix'] . "wikidata_external_category_features_query` WHERE 1";
 		$res = $db->query($wikidata_sql);
