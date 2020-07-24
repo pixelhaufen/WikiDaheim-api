@@ -369,20 +369,31 @@ function get_commons_categorie(&$db,$town,$categorie,$town_location)
 			// !!!!!!!!!!
 			foreach($w_features as $feature => $feature_info)
 			{
-				$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
-				if($row[$feature] == "")
+				// tkk
+				if($feature=="tkk")
 				{
-					if($feature_info['info_false'] != "")
+					if($row[$feature] != "")
 					{
-						$listelement[$feature.'_info'] = $feature_info['info_false'];
+						$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
 					}
-					$complete++;
 				}
 				else
 				{
-					if($feature_info['info_true'] != "")
+					$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
+					if($row[$feature] == "")
 					{
-						$listelement[$feature.'_info'] = $feature_info['info_true'];
+						if($feature_info['info_false'] != "")
+						{
+							$listelement[$feature.'_info'] = $feature_info['info_false'];
+						}
+						$complete++;
+					}
+					else
+					{
+						if($feature_info['info_true'] != "")
+						{
+							$listelement[$feature.'_info'] = $feature_info['info_true'];
+						}
 					}
 				}
 			}
@@ -866,20 +877,30 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 		
 		foreach($features as $feature => $feature_info)
 		{
-			$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
-			if($row[$feature] == "")
+			//tkk
+			if($feature=="tkk")
 			{
-				if($feature_info['info_false'] != "")
+				if($row[$feature] != "")
 				{
-					$listelement[$feature.'_info'] = $feature_info['info_false'];
+					$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
 				}
-				$complete++;
 			}
 			else
 			{
-				if($feature_info['info_true'] != "")
+				$listelement[$feature] = str_replace("'","",str_replace("\\","",$row[$feature]));
+				if($row[$feature] == "")
 				{
-					$listelement[$feature.'_info'] = $feature_info['info_true'];
+					if($feature_info['info_false'] != "")
+					{
+						$listelement[$feature.'_info'] = $feature_info['info_false'];
+					}
+				}
+				else
+				{
+					if($feature_info['info_true'] != "")
+					{
+						$listelement[$feature.'_info'] = $feature_info['info_true'];
+					}
 				}
 			}
 		}
@@ -917,13 +938,20 @@ function get_request_categorie(&$db,$town,$categorie,$display_categorie,$town_lo
 			$listelement['editLink'] = $listelement['article'];
 			$listelement['article'] = str_replace(" ","_","https://www.wikidata.org/wiki/".$listelement['wikidata_id']);
 			
+			$campain = "campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id'];
+			// TKK
+			if($listelement['tkk']!="")
+			{
+				$campain = "campaign=TKK&id=".$listelement['tkk'];
+			}
+			
 			if($listelement['commonscat']=="")
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&".$campain."&categories=".str_replace(" ","+",$commonscat)."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
 			}
 			else
 			{
-				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&campaign=WikiDaheim-at-wd&id=".$listelement['wikidata_id']."&categories=".str_replace(" ","+",$listelement['commonscat'])."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
+				$listelement['uploadLink'] = "https://commons.wikimedia.org/w/index.php?title=Special:UploadWizard&".$campain."&categories=".str_replace(" ","+",$listelement['commonscat'])."&descriptionlang=de&description=".$listelement['sLabel']."&caption=".urlencode($listelement['sLabel'])."&captionlang=de";
 			}
 			
 			$listelement['source']['title'] = "Wikidata";
